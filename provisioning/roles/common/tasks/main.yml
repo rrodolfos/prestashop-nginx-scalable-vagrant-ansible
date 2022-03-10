@@ -1,0 +1,15 @@
+- name: '[common role] Install common packages'
+  apt:
+    pkg:
+    - vim
+    - htop
+    - mc
+    - screen
+    - python3-apt
+    - python3-pymysql
+    - aptitude
+    - avahi-daemon
+    - acl
+    state: present
+    update_cache: yes
+

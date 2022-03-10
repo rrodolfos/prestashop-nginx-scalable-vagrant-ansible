@@ -1,0 +1,64 @@
+---
+# Prestashop
+prestashop_path: /var/www/prestashop #prestashop *
+prestashop_domain: shop.local #prestashop shop **
+prestashop_db_server: "{{ prestashop_domain }}" #prestashop
+prestashop_db_name: prestashop #prestashop
+prestashop_db_user: prestashop #prestashop
+prestashop_db_password: prestashop #prestashop
+prestashop_email: john.doe@foo.foo #prestashop
+prestashop_timezone: Europe/Madrid #prestashop
+prestashop_country: es #prestashop
+prestashop_fixtures: 1 #prestashop
+prestashop_admin_dir: admin56 #prestashop
+prestashop_installer_git_url: https://github.com/PrestaShop/PrestaShop/releases/download/1.7.8.4/prestashop_1.7.8.4.zip #prestashop
+prestashop_ip_address_debug: present #prestashop
+prestashop_links: #prestashop
+  - .htaccess
+  - app/config
+  - app/Resources/translations
+  - download
+  - img
+  - localization
+  - mails
+  - modules
+  - pdf
+  - robots.txt
+  - themes
+  - translations
+  - upload
+  - var
+  - installer-git
+prestashop_post_install_cleaning: #prestashop
+  - "{{ prestashop_path }}/install"
+  - "{{ prestashop_path }}/docs"
+  - "{{ prestashop_path }}/LICENSES"
+  - "{{ prestashop_path }}/INSTALL.txt"
+  - "{{ prestashop_path }}/admin"
+
+# Nginx
+nginx_user: www-data #prestashop shop
+nginx_group: www-data #prestashop shop
+nginx_upstream: #shop
+  - 192.168.33.14 #prestashop-1.local
+  - 192.168.33.15 #prestashop-2.local
+
+# Mysql
+mysql_admin_user: root #prestashop shop
+mysql_admin_host: '%' #prestashop shop
+mysql_admin_password: root #prestashop shop
+mysql_socket: /var/run/mysqld/mysqld.sock #shop
+
+# Php
+php_session_save_handler: redis #prestashop
+php_session_save_path: "tcp://{{ redis_server }}?auth={{ redis_password }}" #prestashop
+
+# Redis
+redis_server: "{{ prestashop_domain }}" #shop *
+redis_password: foobared #shop *
+
+# Nfs
+nfs_server: "{{ prestashop_domain }}" #prestashop
+nfs_exports: /srv/prestashop #prestashop shop *
+nfs_mount_point: /srv/prestashop #prestashop
+nfs_exports_config: "{{ nfs_exports }} 192.168.33.0/24(rw,sync,no_subtree_check,root_squash)" #shop

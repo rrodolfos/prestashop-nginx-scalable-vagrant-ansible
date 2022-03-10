@@ -1,0 +1,77 @@
+- name: '[shop role] Copy shop nginx configuration to /etc/nginx/sites-available'
+  template:
+    src: nginx/shop.j2
+    dest: /etc/nginx/sites-available/shop
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: '[shop role] Enable shop nginx configuration to /etc/nginx/sites-enabled'
+  file:
+    src: /etc/nginx/sites-available/shop
+    dest: /etc/nginx/sites-enabled/shop
+    owner: root
+    group: root
+    state: link
+
+- name: '[shop role] Restart nginx'
+  systemd:
+    state: restarted
+    daemon_reload: yes
+    name: nginx
+
+- name: '[shop role] Copy configuration file mariadb.conf.d/90-custom.cnf'
+  copy:
+    src: mariadb.conf.d/90-custom.cnf
+    dest: /etc/mysql/mariadb.conf.d/
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: '[shop role] Restart mariadb'
+  systemd:
+    state: restarted
+    daemon_reload: yes
+    name: mariadb
+
+- name: '[shop role] Update mariadb root password'
+  community.mysql.mysql_user:
+    name: "{{ mysql_admin_user }}"
+    host: "{{ mysql_admin_host }}"
+    password: "{{ mysql_admin_password }}"
+    priv: '*.*:ALL,GRANT'
+    state: present
+    login_unix_socket: "{{ mysql_socket }}"
+
+- name: '[shop role] Create nfs exports directory'
+  file:
+    path: "{{ nfs_exports }}"
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_group }}"
+    state: directory
+
+- name: '[shop role] Configure nfs exports directory'
+  lineinfile:
+    path: /etc/exports
+    line: "{{ nfs_exports_config }}"
+
+- name: '[shop role] Restart nfs-kernel-server'
+  systemd:
+    state: restarted
+    daemon_reload: yes
+    name: nfs-kernel-server
+
+- name: '[shop role] Copy redis-server configuration to /etc/redis'
+  template:
+    src: redis/redis.conf.j2
+    dest: /etc/redis/redis.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: '[shop role] Restart redis-server'
+  systemd:
+    state: restarted
+    daemon_reload: yes
+    name: redis-server
+

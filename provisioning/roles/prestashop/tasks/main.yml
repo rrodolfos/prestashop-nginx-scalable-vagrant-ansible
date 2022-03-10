@@ -1,0 +1,111 @@
+- name: '[prestashop role] Install openssl'
+  apt:
+    pkg:
+    - openssl
+    state: present
+    update_cache: yes
+
+- name: '[prestashop role] Install php7.4'
+  apt:
+    pkg:
+    - php7.4
+    - php7.4-fpm
+    - php7.4-curl
+    - php7.4-dom
+    - php7.4-fileinfo
+    - php7.4-gd
+    - php7.4-iconv
+    - php7.4-intl
+    - php7.4-json
+    - php7.4-mbstring
+    - php7.4-pdo
+    - php7.4-pdo-mysql
+    - php7.4-simplexml
+    - php7.4-zip
+    - php-redis
+    state: present
+    update_cache: yes
+  notify:
+    - '[prestashop role] Configure php-redis session'
+    - '[prestashop role] Restart php7.4-fpm' 
+
+- name: '[prestashop role] Install redis-tools'
+  apt:
+    pkg:
+    - redis-tools
+    state: present
+    update_cache: yes
+
+- name: '[prestashop role] Install mariadb-client-10.5'
+  apt:
+    pkg:
+    - mariadb-client-10.5
+    state: present
+    update_cache: yes
+  notify:
+    - '[prestashop role] Create prestashop database'
+    - '[prestashop role] Create database user prestashop with all prestashop database privileges'
+
+- name: '[prestashop role] Install nfs-common'
+  apt:
+    pkg:
+    - nfs-common
+    state: present
+    update_cache: yes
+  notify:
+    - '[prestashop role] Mount prestashop shared nfs directories'
+    - '[prestashop role] Copy prestashop shared nfs directories' 
+
+- name: '[prestashop role] Install nginx'
+  apt:
+    pkg:
+    - nginx
+    state: present
+    update_cache: yes
+  notify:
+    - '[prestashop role] Create prestashop directory'
+    - '[prestashop role] Create symlinks to nfs prestashop shared directory'
+    - '[prestashop role] Download prestashop installer from git - http'
+    - '[prestashop role] Extract prestashop into prestashop directory'
+    - '[prestashop role] Rename prestashop admin directory'
+    - '[prestashop role] Copy prestashop nginx configuration to /etc/nginx/sites-available'
+    - '[prestashop role] Enable prestashop nginx configuration to /etc/nginx/sites-enabled'
+    - '[prestashop role] Clean prestashop post install files'
+
+- name: '[prestashop role] Force all notified handlers to run at this point, not waiting for normal sync points'
+  meta: flush_handlers
+
+- name: '[prestashop role] Set prestashop upstream ip address debug'
+  lineinfile:
+    path: "{{ prestashop_path }}/themes/classic/templates/_partials/header.tpl"
+    regexp: '^\{\$smarty\.server\.SERVER_ADDR\}$'
+    insertafter: '^ \*\}$'
+    line: "{$smarty.server.SERVER_ADDR}"
+    state: "{{ prestashop_ip_address_debug }}"
+  become_user: "{{ nginx_user }}"
+
+- name: '[prestashop role] Set prestashop cookies debug'
+  copy:
+    src: prestashop_debug/cookies.php
+    dest: "{{ prestashop_path }}/{{ prestashop_admin_dir }}/"
+    force: no
+  become_user: "{{ nginx_user }}"
+  when: prestashop_ip_address_debug == "present"
+
+- name: '[prestashop role] Unset prestashop cookies debug'
+  file:
+    path: "{{ prestashop_path }}/{{ prestashop_admin_dir }}/cookies.php"
+    state: absent
+  become_user: "{{ nginx_user }}"
+  when: prestashop_ip_address_debug == "absent"
+
+- debug:
+    msg: "[prestashop role] Prestashop url address: http://{{ prestashop_domain }}"
+
+- debug:
+    msg: "[prestashop role] Prestashop upstream url address: http://{{ item }}"
+  with_items: "{{ nginx_upstream }}"
+
+- debug:
+    msg: "[prestashop role] Prestashop upstream ip address debug: {{ prestashop_ip_address_debug }}"
+

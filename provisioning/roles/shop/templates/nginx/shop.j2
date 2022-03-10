@@ -1,0 +1,28 @@
+upstream prestashop {
+
+  {% for server in nginx_upstream %}
+  server {{ server }};
+  {% endfor %}
+
+}
+
+server {
+
+    listen 80;
+
+    root /var/www/html;
+
+    index index.html index.htm index.nginx-debian.html;
+
+    server_name shop {{ prestashop_domain }};
+
+    access_log /var/log/nginx/shop.local-access.log;
+    error_log /var/log/nginx/shop.local-error.log;
+
+    location / {
+        proxy_pass http://prestashop;
+        proxy_set_header Host $host;
+    }
+
+}
+

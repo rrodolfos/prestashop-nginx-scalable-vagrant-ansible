@@ -1,0 +1,43 @@
+- name: '[shop role] Install mariadb-server-10.5'
+  apt:
+    pkg:
+    - mariadb-server-10.5
+    state: present
+    update_cache: yes
+  notify:
+    - '[shop role] Copy configuration file mariadb.conf.d/90-custom.cnf'
+    - '[shop role] Restart mariadb'
+    - '[shop role] Update mariadb root password'
+
+- name: '[shop role] Install nginx'
+  apt:
+    pkg:
+    - nginx
+    state: present
+    update_cache: yes
+  notify:
+    - '[shop role] Copy shop nginx configuration to /etc/nginx/sites-available'
+    - '[shop role] Enable shop nginx configuration to /etc/nginx/sites-enabled'
+    - '[shop role] Restart nginx'
+
+- name: '[shop role] Install nfs-kernel-server'
+  apt:
+    pkg:
+    - nfs-kernel-server
+    state: present
+    update_cache: yes
+  notify:
+    - '[shop role] Create nfs exports directory'
+    - '[shop role] Configure nfs exports directory'
+    - '[shop role] Restart nfs-kernel-server'
+
+- name: '[shop role] Install redis-server'
+  apt:
+    pkg:
+    - redis-server
+    state: present
+    update_cache: yes
+  notify:
+    - '[shop role] Copy redis-server configuration to /etc/redis'
+    - '[shop role] Restart redis-server'
+

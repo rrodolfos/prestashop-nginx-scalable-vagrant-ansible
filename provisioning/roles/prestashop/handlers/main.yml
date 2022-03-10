@@ -1,0 +1,141 @@
+- name: '[prestashop role] Configure php-redis session'
+  template:
+    src: php-fpm/php.ini.j2
+    dest: /etc/php/7.4/fpm/php.ini
+    mode: '0644'
+
+- name: '[prestashop role] Restart php7.4-fpm'
+  systemd:
+    state: restarted
+    daemon_reload: yes
+    name: php7.4-fpm
+
+- name: '[prestashop role] Mount prestashop shared nfs directories'
+  mount:
+    src: "{{ nfs_server }}:{{ nfs_exports }}"
+    path: "{{ nfs_mount_point }}"
+    state: mounted
+    fstype: nfs
+
+- name: '[prestashop role] Copy prestashop shared nfs directories'
+  copy:
+    src: prestashop_filesystem/
+    dest: "{{ nfs_mount_point }}"
+    force: no
+  become_user: "{{ nginx_user }}"
+
+- name: '[prestashop role] Create prestashop directory'
+  file:
+    path: "{{ prestashop_path }}/{{ item }}"
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_group }}"
+    state: directory
+  with_items:
+    - ''
+    - app
+    - app/Resources
+
+- name: '[prestashop role] Create symlinks to nfs prestashop shared directory'
+  file:
+    src: "{{ nfs_mount_point }}/{{ item }}"
+    dest: "{{ prestashop_path }}/{{ item }}"
+    state: link
+  with_items: "{{ prestashop_links }}"
+  become_user: "{{ nginx_user }}"
+
+- name: '[prestashop role] Download prestashop installer from git - http'
+  unarchive:
+    src: "{{ prestashop_installer_git_url }}"
+    dest: "{{ prestashop_path }}/installer-git"
+    creates: "{{ prestashop_path }}/installer-git/prestashop.zip"
+    remote_src: yes
+    exclude:
+      - index.php
+      - Install_PrestaShop.html
+    extra_opts:
+      - -n
+  become_user: "{{ nginx_user }}"
+
+- name: '[prestashop role] Extract prestashop into prestashop directory'
+  unarchive:
+    src: "{{ prestashop_path }}/installer-git/prestashop.zip"
+    dest: "{{ prestashop_path }}"
+    creates: "{{ prestashop_path }}/config"
+    remote_src: yes
+    extra_opts:
+      - -n
+  notify:
+    - '[prestashop role] Rename prestashop admin directory'
+  become_user: "{{ nginx_user }}"
+
+- name: '[prestashop role] Copy prestashop nginx configuration to /etc/nginx/sites-available'
+  template:
+    src: nginx/prestashop.j2
+    dest: /etc/nginx/sites-available/prestashop
+    mode: '0644'
+
+- name: '[prestashop role] Enable prestashop nginx configuration to /etc/nginx/sites-enabled'
+  file:
+    src: /etc/nginx/sites-available/prestashop
+    dest: /etc/nginx/sites-enabled/prestashop
+    state: link
+  notify:
+    - '[prestashop role] Restart nginx'
+
+- name: '[prestashop role] Restart nginx'
+  systemd:
+    state: restarted
+    daemon_reload: yes
+    name: nginx
+
+- name: '[prestashop role] Create prestashop database'
+  community.mysql.mysql_db:
+    name: "{{ prestashop_db_name }}"
+    state: present
+    login_host: "{{ prestashop_db_server }}"
+    login_user: "{{ mysql_admin_user }}"
+    login_password: "{{ mysql_admin_password }}"
+  notify:
+    - '[prestashop role] Install prestashop'
+
+- name: '[prestashop role] Create database user prestashop with all prestashop database privileges'
+  community.mysql.mysql_user:
+    name: "{{ prestashop_db_user }}"
+    host: "{{ mysql_admin_host }}"
+    password: "{{ prestashop_db_password }}"
+    priv: 'prestashop.*:ALL'
+    state: present
+    login_host: "{{ prestashop_db_server }}"
+    login_user: "{{ mysql_admin_user }}"
+    login_password: "{{ mysql_admin_password }}"
+
+- name: '[prestashop role] Install prestashop'
+  command:
+    chdir: "{{ prestashop_path }}/install"
+    argv:
+      - /bin/php
+      - index_cli.php
+      - "--domain={{ prestashop_domain }}"
+      - "--db_server={{ prestashop_db_server }}"
+      - "--db_name={{ prestashop_db_name }}"
+      - "--db_user={{ prestashop_db_user }}"
+      - "--db_password={{ prestashop_db_password }}"
+      - "--email={{ prestashop_email }}"
+      - "--timezone={{ prestashop_timezone }}"
+      - "--country={{ prestashop_country }}"
+      - "--fixtures={{ prestashop_fixtures }}"
+  become_user: "{{ nginx_user }}"
+
+- name: '[prestashop role] Rename prestashop admin directory'
+  copy:
+    src: "{{ prestashop_path }}/admin/"
+    dest: "{{ prestashop_path }}/{{ prestashop_admin_dir }}/"
+    remote_src: yes
+  become_user: "{{ nginx_user }}"
+
+- name: '[prestashop role] Clean prestashop post install files'
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items: "{{ prestashop_post_install_cleaning }}"
+
