@@ -12,7 +12,7 @@ This repository (https://github.com/rrodolfos/prestashop-nginx-scalable-vagrant-
 > This implementation is intended for testing / PoC / educational purposes only, this solution is not ~~scalable or~~ secure enough for live / production environments. Use it at your own risk. Have fun!.
 
 ## Requirements
-The below requirements are needed to deploy and provision PrestaShop VM.
+The below requirements are needed to deploy and provision Shop and PrestaShop VMs.
 
   - [VirtualBox](https://www.virtualbox.org/)
   - [Vagrant](https://www.vagrantup.com/)
@@ -40,7 +40,7 @@ The below requirements are needed to deploy and provision PrestaShop VM.
     - shop
 
 ### Vagrantfile
-VM mac	hine definition as follow:
+VM machines definition as follow:
   - shop
     - 2 vcpu
     - 1024 RAM
@@ -66,10 +66,10 @@ This VM has all stateful services and a NGINX reverse proxy. So this machine wil
 
   - NGINX as reverse proxy
   - Redis as session handler for php
-  - NFS as PrestaShop common web files
+  - NFS as PrestaShop common web files storage
   - MariaDB as usual
   
-> Note: PrestaShop does not use php sessions instead it uses cookies. However in [How to make PrestaShop scale](https://devdocs.prestashop.com/1.7/scale/) official documentation they does mention Redis to store sessions so there it is. If by any chance you know why please let me know.
+> Note: PrestaShop does not use php sessions instead it uses cookies. However, in [How to make PrestaShop scale](https://devdocs.prestashop.com/1.7/scale/) official documentation they does mention Redis to store sessions so there it is. If by any chance you know why please let me know.
 
 ### prestashop-{1,2} VMs
 These VMs have all stateless PrestaShop services. They contain a web server with php, and some web files. Services included in these VMs are:
@@ -152,11 +152,12 @@ To destroy the VM
 ```
   $ vagrant destroy
 ```
+
 ## Notes
   - Be sure the VM has the package ```acl``` is installed (Ansible should do it for you ;-)
   - To change paths, user names, passwords and prestashop installation values check:
     ```prestashop-nginx-scalable-vagrant-ansible/provisioning/vars/main.yml```
-  - When use `$ vagrant ssh`. It sholud have a vm name. Eg:
+  - When use `$ vagrant ssh`. It sholud have a VM name. Eg:
 
     ```
     $ vagrant ssh shop
